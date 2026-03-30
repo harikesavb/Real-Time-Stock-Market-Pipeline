@@ -1,0 +1,22 @@
+name: stock_pipeline
+version: 1.0.0
+config-version: 2
+
+profile: stock_pipeline
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+models:
+  stock_pipeline:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: mart
+      +materialized: table

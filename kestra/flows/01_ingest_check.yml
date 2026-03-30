@@ -1,0 +1,41 @@
+id: 01_ingest_check
+namespace: stock_pipeline
+description: Poll the consumer health endpoint every two minutes and warn when ingestion is unhealthy.
+
+tasks:
+  - id: consumer_health
+    type: io.kestra.plugin.core.http.Request
+    uri: http://consumer:8081/health
+    method: GET
+    options:
+      allowFailed: true
+
+  - id: health_log
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.consumer_health.code != 200 }}"
+    then:
+      - id: unhealthy_warning
+        type: io.kestra.plugin.core.log.Log
+        level: WARN
+        message: "Consumer health check returned {{ outputs.consumer_health.code }} at {{ now() }}."
+    else:
+      - id: healthy_message
+        type: io.kestra.plugin.core.log.Log
+        message: "Consumer health check passed at {{ now() }}."
+
+  - id: health_state
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ outputs.consumer_health.code == 200 }}"
+
+outputs:
+  - id: consumer_http_code
+    type: INT
+    value: "{{ outputs.consumer_health.code }}"
+  - id: consumer_healthy
+    type: STRING
+    value: "{{ outputs.health_state.value }}"
+
+triggers:
+  - id: every_two_minutes
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/2 * * * *"

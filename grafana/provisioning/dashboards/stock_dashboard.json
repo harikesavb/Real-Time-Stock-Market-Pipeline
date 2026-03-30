@@ -1,0 +1,338 @@
+{
+  "__inputs": [],
+  "__requires": [
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "type": "grafana",
+      "version": "11.0.0"
+    },
+    {
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "type": "datasource",
+      "version": "1.0.0"
+    },
+    {
+      "id": "timeseries",
+      "name": "Time series",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "table",
+      "name": "Table",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "barchart",
+      "name": "Bar chart",
+      "type": "panel",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "stock-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  event_timestamp AS \"time\",\n  symbol AS metric,\n  price::double precision AS value\nFROM staging.stg_stock_prices\nWHERE $__timeFilter(event_timestamp)\nORDER BY 1, 2;",
+          "refId": "A"
+        }
+      ],
+      "title": "Live Price Line Chart",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "stock-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "direction"
+          },
+          {
+            "desc": false,
+            "displayName": "rank"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  direction,\n  rank,\n  symbol,\n  latest_price,\n  baseline_price,\n  price_change,\n  percent_change,\n  latest_timestamp\nFROM mart.top_gainers_losers\nORDER BY direction, rank;",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Gainers & Losers Table",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "stock-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "hidden",
+          "showLegend": false
+        },
+        "orientation": "vertical",
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  symbol,\n  sum(CASE WHEN is_volume_spike THEN 1 ELSE 0 END)::double precision AS spike_count\nFROM mart.volume_spikes\nWHERE $__timeFilter(event_timestamp)\nGROUP BY symbol\nORDER BY spike_count DESC, symbol;",
+          "refId": "A"
+        }
+      ],
+      "title": "Volume Spike Bar Chart",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "stock-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "drawStyle": "line",
+            "fillOpacity": 6,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 2,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  event_timestamp AS \"time\",\n  'Actual Price' AS metric,\n  actual_price::double precision AS value\nFROM mart.moving_average\nWHERE symbol = '${symbol}'\n  AND $__timeFilter(event_timestamp)\nORDER BY 1;",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  event_timestamp AS \"time\",\n  'Moving Average 5m' AS metric,\n  moving_average_5m::double precision AS value\nFROM mart.moving_average\nWHERE symbol = '${symbol}'\n  AND $__timeFilter(event_timestamp)\nORDER BY 1;",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "stock-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  event_timestamp AS \"time\",\n  'Moving Average 15m' AS metric,\n  moving_average_15m::double precision AS value\nFROM mart.moving_average\nWHERE symbol = '${symbol}'\n  AND $__timeFilter(event_timestamp)\nORDER BY 1;",
+          "refId": "C"
+        }
+      ],
+      "title": "Moving Average vs Actual Price",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "stocks",
+    "kafka",
+    "dbt",
+    "grafana"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "AAPL",
+          "value": "AAPL"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "stock-postgres"
+        },
+        "definition": "SELECT DISTINCT symbol AS __text, symbol AS __value FROM staging.stg_stock_prices ORDER BY symbol;",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Symbol",
+        "multi": false,
+        "name": "symbol",
+        "options": [],
+        "query": "SELECT DISTINCT symbol AS __text, symbol AS __value FROM staging.stg_stock_prices ORDER BY symbol;",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Real-Time Stock Market Pipeline",
+  "uid": "stock-market-pipeline",
+  "version": 1
+}

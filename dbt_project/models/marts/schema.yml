@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: moving_average
+    description: Rolling 5-minute and 15-minute moving averages for each tracked stock.
+    columns:
+      - name: symbol
+        description: Stock ticker symbol.
+      - name: event_timestamp
+        description: UTC event timestamp.
+      - name: actual_price
+        description: Observed stock price at the event time.
+      - name: moving_average_5m
+        description: Rolling 5-minute moving average.
+      - name: moving_average_15m
+        description: Rolling 15-minute moving average.
+
+  - name: top_gainers_losers
+    description: Top five gainers and losers based on latest price compared with a one-hour baseline.
+    columns:
+      - name: symbol
+        description: Stock ticker symbol.
+      - name: direction
+        description: Indicates whether the stock is a gainer or loser.
+      - name: percent_change
+        description: Percentage price change versus the one-hour baseline.
+      - name: rank
+        description: Rank within gainers or losers.
+
+  - name: volume_spikes
+    description: Events where current volume is more than two times the rolling one-hour average volume.
+    columns:
+      - name: symbol
+        description: Stock ticker symbol.
+      - name: event_timestamp
+        description: UTC event timestamp.
+      - name: spike_ratio
+        description: Ratio of current volume to the rolling one-hour average.
+      - name: is_volume_spike
+        description: Boolean indicator for detected spikes.

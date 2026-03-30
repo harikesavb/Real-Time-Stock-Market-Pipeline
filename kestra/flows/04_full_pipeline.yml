@@ -1,0 +1,49 @@
+id: 04_full_pipeline
+namespace: stock_pipeline
+description: End-to-end orchestration flow that checks ingestion, runs dbt, tests models, and logs completion.
+
+tasks:
+  - id: ingest_check
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: stock_pipeline
+    flowId: 01_ingest_check
+    wait: true
+    transmitFailed: true
+
+  - id: ingest_status_log
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.ingest_check.outputs.consumer_healthy != 'true' }}"
+    then:
+      - id: ingest_warning
+        type: io.kestra.plugin.core.log.Log
+        level: WARN
+        message: "Consumer health is degraded during the full pipeline run at {{ now() }}."
+    else:
+      - id: ingest_ok
+        type: io.kestra.plugin.core.log.Log
+        message: "Consumer health is good for the full pipeline run."
+
+  - id: dbt_run
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: stock_pipeline
+    flowId: 02_dbt_run
+    wait: true
+    transmitFailed: true
+    inputs:
+      emit_downstream_trigger: "false"
+
+  - id: dbt_test
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: stock_pipeline
+    flowId: 03_dbt_test
+    wait: true
+    transmitFailed: true
+
+  - id: completion_log
+    type: io.kestra.plugin.core.log.Log
+    message: "Full stock pipeline completed successfully at {{ now() }}."
+
+triggers:
+  - id: every_fifteen_minutes
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/15 * * * *"

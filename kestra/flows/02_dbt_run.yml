@@ -1,0 +1,50 @@
+id: 02_dbt_run
+namespace: stock_pipeline
+description: Execute dbt run inside the reusable dbt container every five minutes.
+
+inputs:
+  - id: emit_downstream_trigger
+    type: STRING
+    defaults: "true"
+
+tasks:
+  - id: trigger_state
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ inputs.emit_downstream_trigger }}"
+
+  - id: run_dbt_models
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: stock_pipeline-dbt:latest
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: stock_pipeline_net
+      pullPolicy: NEVER
+    env:
+      DBT_HOST: postgres
+      DBT_PORT: "5432"
+      POSTGRES_USER: "{{ envs.postgres_user }}"
+      POSTGRES_PASSWORD: "{{ envs.postgres_password }}"
+      POSTGRES_DB: "{{ envs.postgres_db }}"
+      DBT_PROFILES_DIR: /app/dbt_project
+    commands:
+      - |
+        cd /app/dbt_project
+        dbt run --project-dir /app/dbt_project --profiles-dir /app/dbt_project > /tmp/dbt_run.log 2>&1
+        status=$?
+        cat /tmp/dbt_run.log
+        if [ "$status" -ne 0 ]; then
+          echo "dbt run failed. Failed models:"
+          grep -E "Failure in model|ERROR creating" /tmp/dbt_run.log || echo "Unable to parse failed models from dbt output."
+          exit "$status"
+        fi
+        echo "dbt run completed successfully."
+
+outputs:
+  - id: emit_downstream_trigger
+    type: STRING
+    value: "{{ outputs.trigger_state.value }}"
+
+triggers:
+  - id: every_five_minutes
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/5 * * * *"

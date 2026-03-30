@@ -1,0 +1,44 @@
+id: 03_dbt_test
+namespace: stock_pipeline
+description: Run dbt tests after successful dbt model execution and log failures with details.
+
+tasks:
+  - id: run_dbt_tests
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: stock_pipeline-dbt:latest
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      networkMode: stock_pipeline_net
+      pullPolicy: NEVER
+    env:
+      DBT_HOST: postgres
+      DBT_PORT: "5432"
+      POSTGRES_USER: "{{ envs.postgres_user }}"
+      POSTGRES_PASSWORD: "{{ envs.postgres_password }}"
+      POSTGRES_DB: "{{ envs.postgres_db }}"
+      DBT_PROFILES_DIR: /app/dbt_project
+    commands:
+      - |
+        cd /app/dbt_project
+        dbt test --project-dir /app/dbt_project --profiles-dir /app/dbt_project > /tmp/dbt_test.log 2>&1
+        status=$?
+        cat /tmp/dbt_test.log
+        if [ "$status" -ne 0 ]; then
+          echo "dbt test failed. Failed tests:"
+          grep -E "Failure in test|FAIL [0-9]+" /tmp/dbt_test.log || echo "Unable to parse failed tests from dbt output."
+          exit "$status"
+        fi
+        echo "dbt test completed successfully."
+
+triggers:
+  - id: after_dbt_run_success
+    type: io.kestra.plugin.core.trigger.Flow
+    preconditions:
+      id: dbt_run_success
+      flows:
+        - namespace: stock_pipeline
+          flowId: 02_dbt_run
+          states: [SUCCESS]
+    conditions:
+      - type: io.kestra.plugin.core.condition.ExecutionOutputs
+        expression: "{{ trigger.outputs.emit_downstream_trigger == 'true' }}"
