@@ -68,7 +68,7 @@ cd path\to\stock_pipeline
 If you are cloning it for the first time:
 
 ```powershell
-git clone <your-repo-url>
+git clone <repo-url>
 cd stock_pipeline
 ```
 
